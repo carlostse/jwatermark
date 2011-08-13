@@ -11,70 +11,72 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Random;
 import javax.imageio.ImageIO;
-import com.sun.image.codec.jpeg.JPEGCodec;
-import com.sun.image.codec.jpeg.JPEGImageEncoder;
 
 /**
- * The tool to adding watermark to images,recommended markImage () methods to
- * create watermark image.
+ * The tool to adding watermark to images, <br>
+ * recommended markImage() methods to create watermark image.
  */
 public class ImageWatermark {
 	
 	private static final byte 	OFFSET_X = 10, 
 								OFFSET_Y = 10;
 
+	private static final float	DEFAULT_TRANS		= 0.5f;
+	private static final String	OUTPUT_FORMAT		= "jpg";
+	
 	public static final byte 	MARK_LEFT_TOP 		= 1,
 								MARK_RIGHT_TOP 		= 2,
 								MARK_CENTER 		= 3,
 								MARK_LEFT_BOTTOM 	= 4,
 								MARK_RIGHT_BOTTOM 	= 5;
-
+	
 	/**
-	 * add a text to an image. as a single color, the effect is rather poor.
+	 * Add a text on an image
 	 * @param srcImg
 	 * @param text
 	 * @param font
 	 * @param color
-	 * @param offset_x
-	 * @param offset_y
+	 * @param offsetX
+	 * @param offsetY
 	 */
-	public static void markText(File srcImg, String text, Font font, Color color, int offset_x, int offset_y) {
+	public static void markText(File srcImg, String text, Font font, Color color, int offsetX, int offsetY) {
 		if (!isReadableFile(srcImg))
 			return;
 		
+		BufferedImage image = null;
 		BufferedOutputStream out = null;
+		
 		try {
 			Image src = ImageIO.read(srcImg);
 			int width = src.getWidth(null);
 			int height = src.getHeight(null);
 			
-			BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+			image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 			Graphics g = image.createGraphics();
 			g.drawImage(src, 0, 0, width, height, null);
 			// g.setBackground(Color.white);
 			g.setColor(color);
 			g.setFont(font);
-			g.drawString(text, offset_x, height - font.getSize() / 2 - offset_y);
+			g.drawString(text, offsetX, height - font.getSize() / 2 - offsetY);
 			g.dispose();
-
-			out = new BufferedOutputStream(new FileOutputStream(srcImg));
+			g = null;
 			
-			JPEGImageEncoder encoder = JPEGCodec.createJPEGEncoder(out);
-			encoder.encode(image);
+			out = new BufferedOutputStream(new FileOutputStream(srcImg));
+			encodeJPEG(image, out);
 			
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
 			closeOutputStream(out);
+			image = null;
 		}
 	}
 
 	/**
-	 * A logo picture to picture and watermark, effective this way one instance: <br>
-	 * http://www.mvgod.com/images/poster/NaNiYaChuanQi2XKaiSiBinWangZi-10285-12811-19978-13383/3.jpg
-	 * 
+	 * Mark the watermark on an image
 	 * @param srcImg -- source image
 	 * @param markImg -- watermark logo image
 	 * @param outputImg -- output image
@@ -83,66 +85,66 @@ public class ImageWatermark {
 	 * and so constant that ImageWatermark.MARK_LEFT_TOP
 	 */
 	public final static void markImage(File srcImg, File markImg, File outputImg, float alpha, int mark_position) {
-		
 		if (!isReadableFile(srcImg) || !isReadableFile(markImg))
 			return;
 		
+		BufferedImage image = null;
 		BufferedOutputStream out = null;
 		
 		try {
-			Image src = ImageIO.read(srcImg);
-			int width = src.getWidth(null);
-			int height = src.getHeight(null);
+			Image 	src = ImageIO.read(srcImg),
+					watermark = ImageIO.read(markImg);
 			
-			BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+			int srcWidth = src.getWidth(null),
+				srcHeight = src.getHeight(null),
+				wmWidth = watermark.getWidth(null),
+				wmHeight = watermark.getHeight(null);
+			
+			image = new BufferedImage(srcWidth, srcHeight, BufferedImage.TYPE_INT_RGB);
 			Graphics2D g = image.createGraphics();
-			g.drawImage(src, 0, 0, width, height, null);
-
-			Image mark_img = ImageIO.read(markImg);
-			int mark_img_width = mark_img.getWidth(null);
-			int mark_img_height = mark_img.getHeight(null);
+			g.drawImage(src, 0, 0, srcWidth, srcHeight, null);			
 			g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, alpha));
 			
 			switch (mark_position) {
 			case ImageWatermark.MARK_LEFT_TOP:
-				g.drawImage(mark_img, OFFSET_X, OFFSET_Y, mark_img_width, mark_img_height, null);
+				g.drawImage(watermark, OFFSET_X, OFFSET_Y, wmWidth, wmHeight, null);
 				break;
 				
 			case ImageWatermark.MARK_LEFT_BOTTOM:
-				g.drawImage(mark_img, OFFSET_X, (height - mark_img_height - OFFSET_Y), mark_img_width, mark_img_height, null);
+				g.drawImage(watermark, OFFSET_X, (srcHeight - wmHeight - OFFSET_Y), wmWidth, wmHeight, null);
 				break;
 				
 			case ImageWatermark.MARK_CENTER:
-				g.drawImage(mark_img, (width - mark_img_width - OFFSET_X) / 2,
-						(height - mark_img_height - OFFSET_Y) / 2, mark_img_width, mark_img_height, null);
+				g.drawImage(watermark, (srcWidth - wmWidth - OFFSET_X) / 2,
+						(srcHeight - wmHeight - OFFSET_Y) / 2, wmWidth, wmHeight, null);
 				break;
 				
 			case ImageWatermark.MARK_RIGHT_TOP:
-				g.drawImage(mark_img, (width - mark_img_width - OFFSET_X), OFFSET_Y, mark_img_width, mark_img_height, null);
+				g.drawImage(watermark, (srcWidth - wmWidth - OFFSET_X), OFFSET_Y, wmWidth, wmHeight, null);
 				break;
 				
 			case ImageWatermark.MARK_RIGHT_BOTTOM:
 			default:
-				g.drawImage(mark_img, (width - mark_img_width - OFFSET_X), 
-						(height - mark_img_height - OFFSET_Y), mark_img_width, mark_img_height, null);
+				g.drawImage(watermark, (srcWidth - wmWidth - OFFSET_X), 
+						(srcHeight - wmHeight - OFFSET_Y), wmWidth, wmHeight, null);
 			}
 
 			g.dispose();
+			g = null;
 			
 			out = new BufferedOutputStream(new FileOutputStream(outputImg));
-			
-			JPEGImageEncoder encoder = JPEGCodec.createJPEGEncoder(out);
-			encoder.encode(image);
+			encodeJPEG(image, out);
 			
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
 			closeOutputStream(out);
+			image = null;
 		}
 	}
 
 	/**
-	 * mark watermark image, default place watermark at right bottom
+	 * Mark watermark image, default place watermark at right bottom
 	 * @param srcImg -- source image
 	 * @param markImg -- watermark logo image
 	 * @param outputImg -- output image
@@ -153,17 +155,17 @@ public class ImageWatermark {
 	}
 
 	/**
-	 * mark watermark image, default 0.5 transparency and place watermark at right bottom
+	 * Mark watermark image, default transparency and place watermark at right bottom
 	 * @param srcImg -- source image
 	 * @param markImg -- watermark logo image
 	 * @param outputImg -- output image
 	 */
 	public static void markImage(File srcImg, File markImg, File outputImg) {
-		markImage(srcImg, markImg, outputImg, 0.5f, ImageWatermark.MARK_RIGHT_BOTTOM);
+		markImage(srcImg, markImg, outputImg, DEFAULT_TRANS, ImageWatermark.MARK_RIGHT_BOTTOM);
 	}
 
 	/**
-	 * mark watermark image, place watermark at random position
+	 * Mark watermark image, place watermark at random position
 	 * @param srcImg -- source image
 	 * @param markImg -- watermark logo image
 	 * @param outputImg -- output image
@@ -171,10 +173,12 @@ public class ImageWatermark {
 	 */
 	public static void markImageRandomPos(File srcImg, File markImg, File outputImg, float alpha) {
 		int[] a = { ImageWatermark.MARK_LEFT_TOP,
-				ImageWatermark.MARK_RIGHT_TOP, ImageWatermark.MARK_LEFT_TOP,
-				ImageWatermark.MARK_LEFT_BOTTOM,
-				ImageWatermark.MARK_RIGHT_BOTTOM,
-				ImageWatermark.MARK_RIGHT_BOTTOM, ImageWatermark.MARK_CENTER };
+					ImageWatermark.MARK_RIGHT_TOP, 
+					ImageWatermark.MARK_LEFT_TOP,
+					ImageWatermark.MARK_LEFT_BOTTOM,
+					ImageWatermark.MARK_RIGHT_BOTTOM,
+					ImageWatermark.MARK_RIGHT_BOTTOM, 
+					ImageWatermark.MARK_CENTER };
 
 		int i = new Random().nextInt(a.length);
 		markImage(srcImg, markImg, outputImg, alpha, a[i]);
@@ -183,13 +187,13 @@ public class ImageWatermark {
 	/**
 	 * Semi-transparent, random location imprint. With a slightly higher risk of
 	 * lower right corner of the upper left corner, the central minimum risk.<br>
-	 * default 0.5 transparency
+	 * default transparency
 	 * @param srcImg -- source image
 	 * @param markImg -- watermark logo image
 	 * @param outputImg -- output image
 	 */
 	public static void markImageRandomPos(File srcImg, File markImg, File outputImg) {
-		markImageRandomPos(srcImg, markImg, outputImg, 0.5f);
+		markImageRandomPos(srcImg, markImg, outputImg, DEFAULT_TRANS);
 	}
 	
 	/**
@@ -200,6 +204,21 @@ public class ImageWatermark {
 		return file != null && file.exists() && file.isFile();
 	}
 	
+	/**
+	 * Encode the image and output to output stream
+	 * @param image
+	 * @param out
+	 * @throws Exception
+	 */
+	private static void encodeJPEG(BufferedImage image, OutputStream out) throws Exception {
+//		com.sun.image.codec.jpeg.JPEGImageEncoder encoder = com.sun.image.codec.jpeg.JPEGCodec.createJPEGEncoder(out);
+//		com.sun.image.codec.jpeg.JPEGEncodeParam param = encoder.getDefaultJPEGEncodeParam(image);
+//		param.setQuality(0.9f, false);
+//		encoder.encode(image, param);
+
+		ImageIO.write(image, OUTPUT_FORMAT, out);
+	}
+
 	/**
 	 * Close the outputstream
 	 * @param out
