@@ -11,7 +11,9 @@ public class Constant {
 		"Watermark Type:", "Save Output", "Done!", "Failed!", // 9
 		"Developed by: ", "Carlos Tse", "iusers@hotmail.com", // 12
 		"Homepage: ", "http://my.no-ip.info/carlos/", "OK", // 15
-		"Please select ", "source", "watermark", " image!" // 18
+		"Please select ", "source", "watermark", " image!", // 19
+		"&File", "&Open Source\tCTRL+O", "&Open Watermark\tCTRL+W", "&Save\tCTRL+S",
+		"E&xit\tCTRL+Q", "&Help", "&About"
 	};
 
 	public static final byte 	ER_MSG_ST 	= 16,

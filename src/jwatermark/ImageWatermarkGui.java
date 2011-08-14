@@ -50,7 +50,7 @@ public class ImageWatermarkGui {
 	}
 
 	private void initInterface(){
-		int i  = 0;
+		int i = 0;
 		shell.setSize(SHELL_SIZE);
 		shell.setMinimumSize(SHELL_SIZE);
 		shell.setText(TXT[i++] + " " + TXT[i++]);
@@ -111,32 +111,33 @@ public class ImageWatermarkGui {
 	}
 
 	private Menu getMenuBar(){
+		int i = 20;
 		final Menu 	menuBar = new Menu(shell, SWT.BAR),
 					fileMenu = new Menu(shell, SWT.DROP_DOWN),
 					helpMenu = new Menu(shell, SWT.DROP_DOWN);
 
 		final MenuItem file = new MenuItem(menuBar, SWT.CASCADE);
-	    file.setText("&File");
+	    file.setText(TXT[i++]);
 	    file.setMenu(fileMenu);
 
 	    final MenuItem openSrcItem = new MenuItem(fileMenu, SWT.PUSH);
-	    openSrcItem.setText("&Open Source\tCTRL+O");
+	    openSrcItem.setText(TXT[i++]);
 	    openSrcItem.setAccelerator(SWT.CTRL + 'O');
 
 	    final MenuItem openWatermarkItem = new MenuItem(fileMenu, SWT.PUSH);
-	    openWatermarkItem.setText("&Open Watermark\tCTRL+W");
+	    openWatermarkItem.setText(TXT[i++]);
 	    openWatermarkItem.setAccelerator(SWT.CTRL + 'W');
 
 	    new MenuItem(fileMenu, SWT.SEPARATOR);
 
 	    final MenuItem saveItem = new MenuItem(fileMenu, SWT.PUSH);
-	    saveItem.setText("&Save\tCTRL+S");
+	    saveItem.setText(TXT[i++]);
 	    saveItem.setAccelerator(SWT.CTRL + 'S');
 
 	    new MenuItem(fileMenu, SWT.SEPARATOR);
 
 	    final MenuItem exitItem = new MenuItem(fileMenu, SWT.PUSH);
-	    exitItem.setText("E&xit\tCTRL+Q");
+	    exitItem.setText(TXT[i++]);
 	    exitItem.setAccelerator(SWT.CTRL + 'Q');
 
 	    openSrcItem.addSelectionListener(new Open(TYPE_SRC));
@@ -145,11 +146,11 @@ public class ImageWatermarkGui {
 	    exitItem.addSelectionListener(new Exit());
 
 	    final MenuItem help = new MenuItem(menuBar, SWT.CASCADE);
-	    help.setText("&Help");
+	    help.setText(TXT[i++]);
 	    help.setMenu(helpMenu);
 
 	    final MenuItem aboutItem = new MenuItem(helpMenu, SWT.PUSH);
-	    aboutItem.setText("&About");
+	    aboutItem.setText(TXT[i++]);
 	    aboutItem.addSelectionListener(new About());
 
 	    return menuBar;
