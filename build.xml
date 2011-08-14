@@ -50,7 +50,11 @@
 	
 	<target name="run" depends="build" description="run the application">
 		<java jar="${build.dir}/${jar.fileName}.jar" fork="true">
-			<jvmarg value="-Xmx1024m"/>
+			<jvmarg value="-Xms64M" />
+			<jvmarg value="-Xmx512m" />
+			<jvmarg value="-Xmn32M" />
+			<jvmarg value="-XX:PermSize=64M" />
+			<jvmarg value="-XX:MaxPermSize=256m" />
 		</java>
 	</target>
 

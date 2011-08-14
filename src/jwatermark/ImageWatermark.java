@@ -1,5 +1,7 @@
 package jwatermark;
 
+import static jwatermark.Constant.*;
+import static jwatermark.Util.*;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Font;
@@ -20,19 +22,13 @@ import javax.imageio.ImageIO;
  * recommended markImage() methods to create watermark image.
  */
 public class ImageWatermark {
-	
-	private static final byte 	OFFSET_X = 10, 
+
+	private static final byte 	OFFSET_X = 10,
 								OFFSET_Y = 10;
 
-	private static final float	DEFAULT_TRANS		= 0.5f;
-	private static final String	OUTPUT_FORMAT		= "jpg";
-	
-	public static final byte 	MARK_LEFT_TOP 		= 1,
-								MARK_RIGHT_TOP 		= 2,
-								MARK_CENTER 		= 3,
-								MARK_LEFT_BOTTOM 	= 4,
-								MARK_RIGHT_BOTTOM 	= 5;
-	
+	private static final float	DEFAULT_TRANS	= 0.5f;
+	private static final String	OUTPUT_FORMAT	= "jpg";
+
 	/**
 	 * Add a text on an image
 	 * @param srcImg
@@ -41,19 +37,20 @@ public class ImageWatermark {
 	 * @param color
 	 * @param offsetX
 	 * @param offsetY
+	 * @return true if success or fail if failed
 	 */
-	public static void markText(File srcImg, String text, Font font, Color color, int offsetX, int offsetY) {
+	public static boolean markText(File srcImg, String text, Font font, Color color, int offsetX, int offsetY) {
 		if (!isReadableFile(srcImg))
-			return;
-		
+			return true;
+
 		BufferedImage image = null;
 		BufferedOutputStream out = null;
-		
+
 		try {
 			Image src = ImageIO.read(srcImg);
 			int width = src.getWidth(null);
 			int height = src.getHeight(null);
-			
+
 			image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 			Graphics g = image.createGraphics();
 			g.drawImage(src, 0, 0, width, height, null);
@@ -63,16 +60,18 @@ public class ImageWatermark {
 			g.drawString(text, offsetX, height - font.getSize() / 2 - offsetY);
 			g.dispose();
 			g = null;
-			
+
 			out = new BufferedOutputStream(new FileOutputStream(srcImg));
 			encodeJPEG(image, out);
-			
+
 		} catch (Exception e) {
-			e.printStackTrace();
+			log("markText, Exception: ", e);
+			return false;
 		} finally {
 			closeOutputStream(out);
 			image = null;
 		}
+		return true;
 	}
 
 	/**
@@ -81,66 +80,136 @@ public class ImageWatermark {
 	 * @param markImg -- watermark logo image
 	 * @param outputImg -- output image
 	 * @param alpha -- alpha composite 0 - 1,　0 Full transparency, 1 Opaque
-	 * @param mark_position -- Watermark position, the four corners and central respectively, <br>
+	 * @param position -- Watermark position, the four corners and central respectively, <br>
 	 * and so constant that ImageWatermark.MARK_LEFT_TOP
+	 * @return true if success or fail if failed
 	 */
-	public final static void markImage(File srcImg, File markImg, File outputImg, float alpha, int mark_position) {
+	public final static boolean markImage(File srcImg, File markImg, File outputImg, float alpha, byte position) {
 		if (!isReadableFile(srcImg) || !isReadableFile(markImg))
-			return;
-		
+			return false;
+
 		BufferedImage image = null;
 		BufferedOutputStream out = null;
-		
+
 		try {
 			Image 	src = ImageIO.read(srcImg),
 					watermark = ImageIO.read(markImg);
-			
+
 			int srcWidth = src.getWidth(null),
 				srcHeight = src.getHeight(null),
 				wmWidth = watermark.getWidth(null),
 				wmHeight = watermark.getHeight(null);
-			
+
 			image = new BufferedImage(srcWidth, srcHeight, BufferedImage.TYPE_INT_RGB);
 			Graphics2D g = image.createGraphics();
-			g.drawImage(src, 0, 0, srcWidth, srcHeight, null);			
+			g.drawImage(src, 0, 0, srcWidth, srcHeight, null);
 			g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, alpha));
-			
-			switch (mark_position) {
-			case ImageWatermark.MARK_LEFT_TOP:
+
+			switch (position) {
+			case MARK_LEFT_TOP:
 				g.drawImage(watermark, OFFSET_X, OFFSET_Y, wmWidth, wmHeight, null);
 				break;
-				
-			case ImageWatermark.MARK_LEFT_BOTTOM:
+
+			case MARK_LEFT_BOTTOM:
 				g.drawImage(watermark, OFFSET_X, (srcHeight - wmHeight - OFFSET_Y), wmWidth, wmHeight, null);
 				break;
-				
-			case ImageWatermark.MARK_CENTER:
+
+			case MARK_CENTER:
 				g.drawImage(watermark, (srcWidth - wmWidth - OFFSET_X) / 2,
 						(srcHeight - wmHeight - OFFSET_Y) / 2, wmWidth, wmHeight, null);
 				break;
-				
-			case ImageWatermark.MARK_RIGHT_TOP:
+
+			case MARK_RIGHT_TOP:
 				g.drawImage(watermark, (srcWidth - wmWidth - OFFSET_X), OFFSET_Y, wmWidth, wmHeight, null);
 				break;
-				
-			case ImageWatermark.MARK_RIGHT_BOTTOM:
+
+			case MARK_RIGHT_BOTTOM:
 			default:
-				g.drawImage(watermark, (srcWidth - wmWidth - OFFSET_X), 
+				g.drawImage(watermark, (srcWidth - wmWidth - OFFSET_X),
 						(srcHeight - wmHeight - OFFSET_Y), wmWidth, wmHeight, null);
 			}
 
 			g.dispose();
 			g = null;
-			
+
 			out = new BufferedOutputStream(new FileOutputStream(outputImg));
 			encodeJPEG(image, out);
-			
+
 		} catch (Exception e) {
-			e.printStackTrace();
+			log("markImage, Exception: ", e);
+			return false;
 		} finally {
 			closeOutputStream(out);
 			image = null;
 		}
+		return true;
+	}
+
+	/**
+	 * Mark watermark in whole image
+	 * @param srcImg
+	 * @param markImg
+	 * @param outputImg
+	 * @param alpha
+	 * @param mark_position
+	 * @return true if success or fail if failed
+	 */
+	public final static boolean markWholeImage(File srcImg, File markImg, File outputImg, float alpha) {
+		if (!isReadableFile(srcImg) || !isReadableFile(markImg))
+			return false;
+
+		BufferedImage image = null;
+		BufferedOutputStream out = null;
+		int x, y = 0;
+
+		try {
+			Image 	src = ImageIO.read(srcImg),
+					watermark = ImageIO.read(markImg);
+
+			int srcWidth = src.getWidth(null),
+				srcHeight = src.getHeight(null),
+				wmWidth = watermark.getWidth(null),
+				wmHeight = watermark.getHeight(null);
+
+			image = new BufferedImage(srcWidth, srcHeight, BufferedImage.TYPE_INT_RGB);
+			Graphics2D g = image.createGraphics();
+			g.drawImage(src, 0, 0, srcWidth, srcHeight, null);
+			g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, alpha));
+
+			// round to integer
+			int xTimes = srcWidth / wmWidth,
+				yTimes = srcHeight / wmHeight;
+
+			// at least 1
+			if (xTimes < 1) xTimes = 1;
+			if (yTimes < 1) yTimes = 1;
+			log("wmW: " + wmWidth + ", srcW: " + srcWidth + ", xTimes: " + xTimes);
+			log("wmH: " + wmHeight + ", srcH: " + srcHeight + ", yTimes: " + yTimes);
+
+			// draw the watermark to the whole image
+			while (y < yTimes){
+				x = 0;
+				while (x < xTimes){
+//					log("x: " + x + ", y: " + y);
+					g.drawImage(watermark, (x++ * wmWidth), (y * wmHeight), wmWidth, wmHeight, null);
+				}
+				y++;
+			}
+
+			g.dispose();
+			g = null;
+
+			out = new BufferedOutputStream(new FileOutputStream(outputImg));
+			encodeJPEG(image, out);
+
+		} catch (Exception e) {
+			log("markWholeImage, Exception: ", e);
+			return false;
+		} finally {
+			closeOutputStream(out);
+			image = null;
+		}
+		return true;
 	}
 
 	/**
@@ -149,9 +218,22 @@ public class ImageWatermark {
 	 * @param markImg -- watermark logo image
 	 * @param outputImg -- output image
 	 * @param alpha -- alpha composite 0 - 1,　0 Full transparency, 1 Opaque
+	 * @return true if success or fail if failed
 	 */
-	public static void markImage(File srcImg, File markImg, File outputImg, float alpha) {
-		markImage(srcImg, markImg, outputImg, alpha, ImageWatermark.MARK_RIGHT_BOTTOM);
+	public static boolean markImage(File srcImg, File markImg, File outputImg, float alpha) {
+		return markImage(srcImg, markImg, outputImg, alpha, MARK_RIGHT_BOTTOM);
+	}
+
+	/**
+	 * Mark watermark image, default transparency
+	 * @param srcImg -- source image
+	 * @param markImg -- watermark logo image
+	 * @param outputImg -- output image
+	 * @param position -- Watermark position
+	 * @return
+	 */
+	public static boolean markImage(File srcImg, File markImg, File outputImg, byte position) {
+		return markImage(srcImg, markImg, outputImg, DEFAULT_TRANS, position);
 	}
 
 	/**
@@ -159,9 +241,10 @@ public class ImageWatermark {
 	 * @param srcImg -- source image
 	 * @param markImg -- watermark logo image
 	 * @param outputImg -- output image
+	 * @return true if success or fail if failed
 	 */
-	public static void markImage(File srcImg, File markImg, File outputImg) {
-		markImage(srcImg, markImg, outputImg, DEFAULT_TRANS, ImageWatermark.MARK_RIGHT_BOTTOM);
+	public static boolean markImage(File srcImg, File markImg, File outputImg) {
+		return markImage(srcImg, markImg, outputImg, DEFAULT_TRANS, MARK_RIGHT_BOTTOM);
 	}
 
 	/**
@@ -170,18 +253,18 @@ public class ImageWatermark {
 	 * @param markImg -- watermark logo image
 	 * @param outputImg -- output image
 	 * @param alpha -- alpha composite 0 - 1,　0 Full transparency, 1 Opaque
+	 * @return true if success or fail if failed
 	 */
-	public static void markImageRandomPos(File srcImg, File markImg, File outputImg, float alpha) {
-		int[] a = { ImageWatermark.MARK_LEFT_TOP,
-					ImageWatermark.MARK_RIGHT_TOP, 
-					ImageWatermark.MARK_LEFT_TOP,
-					ImageWatermark.MARK_LEFT_BOTTOM,
-					ImageWatermark.MARK_RIGHT_BOTTOM,
-					ImageWatermark.MARK_RIGHT_BOTTOM, 
-					ImageWatermark.MARK_CENTER };
+	public static boolean markImageRandomPos(File srcImg, File markImg, File outputImg, float alpha) {
+		byte[] a = {MARK_LEFT_TOP,
+					MARK_RIGHT_TOP,
+					MARK_LEFT_TOP,
+					MARK_LEFT_BOTTOM,
+					MARK_RIGHT_BOTTOM,
+					MARK_RIGHT_BOTTOM,
+					MARK_CENTER };
 
-		int i = new Random().nextInt(a.length);
-		markImage(srcImg, markImg, outputImg, alpha, a[i]);
+		return markImage(srcImg, markImg, outputImg, alpha, a[new Random().nextInt(a.length)]);
 	}
 
 	/**
@@ -191,11 +274,16 @@ public class ImageWatermark {
 	 * @param srcImg -- source image
 	 * @param markImg -- watermark logo image
 	 * @param outputImg -- output image
+	 * @return true if success or fail if failed
 	 */
-	public static void markImageRandomPos(File srcImg, File markImg, File outputImg) {
-		markImageRandomPos(srcImg, markImg, outputImg, DEFAULT_TRANS);
+	public static boolean markImageRandomPos(File srcImg, File markImg, File outputImg) {
+		return markImageRandomPos(srcImg, markImg, outputImg, DEFAULT_TRANS);
 	}
-	
+
+	public final static boolean markWholeImage(File srcImg, File markImg, File outputImg) {
+		return markWholeImage(srcImg, markImg, outputImg, DEFAULT_TRANS);
+	}
+
 	/**
 	 * @param file
 	 * @return true if the file is readable
@@ -203,7 +291,7 @@ public class ImageWatermark {
 	public static boolean isReadableFile(File file){
 		return file != null && file.exists() && file.isFile();
 	}
-	
+
 	/**
 	 * Encode the image and output to output stream
 	 * @param image
@@ -226,11 +314,11 @@ public class ImageWatermark {
 	private static void closeOutputStream(BufferedOutputStream out){
 		if (out == null)
 			return;
-		
+
 		try {
 			out.close();
 		} catch (IOException e) {
-			
+			log("closeOutputStream, Exception: ", e);
 		}
 		out = null;
 	}
